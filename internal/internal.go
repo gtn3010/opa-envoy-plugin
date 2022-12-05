@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/reflect/protoregistry"
 
+    "google.golang.org/grpc/metadata"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/config"
 	"github.com/open-policy-agent/opa/logging"
@@ -300,6 +301,8 @@ func (p *envoyExtAuthzGrpcServer) check(ctx context.Context, req interface{}) (*
 	var evalErr error
 	start := time.Now()
 	logger := p.manager.Logger()
+    var ok bool
+    var mtdt map[string][]string
 
 	result, stopeval, err := envoyauth.NewEvalResult()
 	if err != nil {
@@ -342,6 +345,17 @@ func (p *envoyExtAuthzGrpcServer) check(ctx context.Context, req interface{}) (*
 	if err != nil {
 		return nil, stop, err
 	}
+
+    mtdt, ok = metadata.FromIncomingContext(ctx)
+    fmt.Println(mtdt)
+    if ok {
+          for k,v := range mtdt {
+                  if strings.Contains(k, "custom") {
+                          input[k] = v
+                  }
+          }
+    }
+    fmt.Println(input)
 
 	inputValue, err := ast.InterfaceToValue(input)
 	if err != nil {
